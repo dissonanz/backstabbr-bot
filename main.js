@@ -11,7 +11,7 @@ assert(process.env.CISCOSPARK_CLIENT_ID);
 assert(process.env.CISCOSPARK_CLIENT_SECRET);
 
 const server = new Hapi.Server();
-server.connection({ port: 3000 });
+server.connection({ port: process.env.PORT });
 
 const roomsForTwo = combinatorics.combination(['AUS','ENG','GER','RUS','TUR','ITA','FRA'],2);
 const roomsForThree = combinatorics.combination(['AUS','ENG','GER','RUS','TUR','ITA','FRA'],3);
