@@ -75,7 +75,7 @@ async function webhook(data) {
   if (data.data.personId != me._v.id) {
     try {
       let message = await ciscospark.messages.create({
-        text: `I heard you`,
+        text: `I heard you, ${data.data.personEmail}`,
         roomId: data.data.roomId
       });
       assert(message.id);
