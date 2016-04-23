@@ -35,23 +35,28 @@ server.route({
     }
 });
 
+async function createRoom(title){
+  try {
+    const room = await ciscospark.rooms.create({title: title});
+    assert(room.id);
+    assert(room.title);
+    assert(room.created);
+  }
+  catch(reason) {
+    console.log("Failure: " + reason)
+  }
+};
+
 server.route({
     method: 'POST',
     path: '/rooms/{gameId}',
     handler: async function (request, reply) {
-        // Get the room list from spark
-        var r;
-        while(r = roomsForTwo.next()) {
-          try {
-            const room = await ciscospark.rooms.create({title: r + " " + request.params.gameId});
-            assert(room.id);
-            assert(room.title);
-            assert(room.created);
-          }
-          catch(reason) {
-            console.log("Failure: " + reason)
-          }
-        }
+        roomsForTwo.forEach( function(r) {
+          createRoom(r + " " + request.params.gameId)
+        });
+        roomsForThree.forEach( function(r) {
+          createRoom(r + " " + request.params.gameId)
+        });
         reply("Rooms created");
     }
 });
@@ -78,42 +83,42 @@ server.route({
 });
 
 server.route({
-    method: 'DELETE',
-    path: '/rooms/{gameId}',
-    handler: async function (request, reply) {
-      // Get the room list from spark
-      const rooms = await ciscospark.rooms.list();
-      var response = {};
-      for (const room of rooms) {
-        try {
-          assert(room.title.match('[A-Z]{3},[A-Z]{3}\ ' + request.params.gameId))
-          await ciscospark.rooms.remove(room.id);
-        }
-        catch(reason) {
-          console.log(reason);
-        }
+  method: 'DELETE',
+  path: '/rooms/{gameId}',
+  handler: async function (request, reply) {
+    // Get the room list from spark
+    const rooms = await ciscospark.rooms.list();
+    var response = {};
+    for (const room of rooms) {
+      try {
+        assert(room.title.match('[A-Z]{3}(,[A-Z]{3}){1,2}\ ' + request.params.gameId))
+        await ciscospark.rooms.remove(room.id);
       }
-      reply(JSON.stringify(response))
-        .type('application/json');
+      catch(reason) {
+        console.log(reason);
+      }
     }
+    reply(JSON.stringify(response))
+      .type('application/json');
+  }
 });
 
 server.route({
-    method: 'DELETE',
-    path: '/room/{id}',
-    handler: async function(request, reply) {
-      console.log(request.params.id);
-      await ciscospark.rooms.remove(request.params.id);
+  method: 'DELETE',
+  path: '/room/{id}',
+  handler: async function(request, reply) {
+    console.log(request.params.id);
+    await ciscospark.rooms.remove(request.params.id);
 
-      try {
-        room = await ciscospark.rooms.get(request.params.id);
-        assert(false, `the previous line should have failed`);
-        console.log(room);
-      }
-      catch(reason) {
-        assert.equal(reason.statusCode, 404);
-        console.log(reason);
-        reply("Failed somehow");
-      }
+    try {
+      room = await ciscospark.rooms.get(request.params.id);
+      assert(false, `the previous line should have failed`);
+      console.log(room);
     }
+    catch(reason) {
+      assert.equal(reason.statusCode, 404);
+      console.log(reason);
+      reply("Failed somehow");
+    }
+  }
 });
