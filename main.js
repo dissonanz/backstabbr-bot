@@ -30,7 +30,8 @@ server.route({
     handler: async function (request, reply) {
         // Get the room list from spark
         const rooms = await ciscospark.rooms.list();
-        reply(JSON.stringify(rooms));
+        reply(JSON.stringify(rooms))
+          .type('application/json');
     }
 });
 
