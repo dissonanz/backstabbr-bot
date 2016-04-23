@@ -36,6 +36,8 @@ server.route({
     }
 });
 
+const me = ciscospark.people.get(`me`);
+
 async function createRoom(title){
   try {
     const room = await ciscospark.rooms.create({title: title});
@@ -64,6 +66,27 @@ async function createWebhook(roomId, powers) {
   }
   catch(reason) {
     console.log(`Failed to create webhook: ${reason}`);
+  }
+};
+
+async function webhook(data) {
+  console.log(`i am ${me._v.id}`);
+  console.log(`you are am ${data.data.personId}`);
+  if (data.data.personId != me._v.id) {
+    try {
+      let message = await ciscospark.messages.create({
+        text: `I heard you`,
+        roomId: data.data.roomId
+      });
+      assert(message.id);
+      assert(message.personId);
+      assert(message.personEmail);
+      assert(message.roomId);
+      assert(message.created);
+    }
+    catch(reason) {
+      console.log(`Failed to respond to webhook: ${reason}`);
+    }
   }
 };
 
@@ -149,6 +172,7 @@ server.route({
   path: '/webhook',
   handler: function(request, reply) {
     console.log(request.payload);
+    webhook(request.payload);
     reply("OK");
   }
 });
@@ -162,3 +186,15 @@ server.route({
       .type('application/json');
   }
 });
+
+server.route({
+  method: 'GET',
+  path: '/me',
+  handler: function(request, reply) {
+    console.log(me._v.id);
+    reply(me)
+      .type('application/json');
+  }
+});
+
+
