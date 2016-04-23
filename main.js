@@ -15,6 +15,7 @@ server.connection({ port: process.env.PORT });
 
 const roomsForTwo = combinatorics.combination(['AUS','ENG','GER','RUS','TUR','ITA','FRA'],2);
 const roomsForThree = combinatorics.combination(['AUS','ENG','GER','RUS','TUR','ITA','FRA'],3);
+const serviceUrl = process.env.SERVICE_URL || `https://backstabbr-bot.herokuapp.com`;
 
 server.start((err) => {
 
@@ -41,24 +42,44 @@ async function createRoom(title){
     assert(room.id);
     assert(room.title);
     assert(room.created);
+    console.log(`Trying to create webhook for ${room.title}`);
+    await createWebhook(room.id, title);
   }
   catch(reason) {
     console.log("Failure: " + reason)
   }
 };
 
+async function createWebhook(roomId, powers) {
+  console.log(`Creating webhook for ${powers} in room ${roomId}`);
+  console.log(`service url is ${serviceUrl}`);
+  try {
+    const webhook = await ciscospark.webhooks.create({
+      resource: `messages`,
+      event: `created`,
+      filter: `roomId=${roomId}`,
+      targetUrl: `${serviceUrl}/webhook`,
+      name: `${powers} messages`
+    });
+  }
+  catch(reason) {
+    console.log(`Failed to create webhook: ${reason}`);
+  }
+};
+
 server.route({
-    method: 'POST',
-    path: '/rooms/{gameId}',
-    handler: async function (request, reply) {
-        roomsForTwo.forEach( function(r) {
-          createRoom(r + " " + request.params.gameId)
-        });
-        roomsForThree.forEach( function(r) {
-          createRoom(r + " " + request.params.gameId)
-        });
-        reply("Rooms created");
-    }
+  method: 'POST',
+  path: '/rooms/{gameId}',
+  handler: async function (request, reply) {
+      roomsForTwo.forEach( function(r) {
+        console.log(`creating room for ${r}`);
+        createRoom(r + " " + request.params.gameId);
+      });
+      roomsForThree.forEach( function(r) {
+        createRoom(r + " " + request.params.gameId);
+      });
+      reply("Rooms created");
+  }
 });
 
 server.route({
@@ -120,5 +141,24 @@ server.route({
       console.log(reason);
       reply("Failed somehow");
     }
+  }
+});
+
+server.route({
+  method: 'POST',
+  path: '/webhook',
+  handler: function(request, reply) {
+    console.log(request.payload);
+    reply("OK");
+  }
+});
+
+server.route({
+  method: 'GET',
+  path: '/webhooks',
+  handler: async function(request, reply) {
+    const webhooks = Array.from(await ciscospark.webhooks.list());
+    reply(JSON.stringify(webhooks))
+      .type('application/json');
   }
 });
