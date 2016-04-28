@@ -70,12 +70,14 @@ async function createWebhook(roomId, powers) {
 };
 
 async function webhook(data) {
-  console.log(`i am ${me._v.id}`);
-  console.log(`you are am ${data.data.personId}`);
+  // console.log(`i am ${me._v.id}`);
+  // console.log(`you are am ${data.data.personId}`);
   if (data.data.personId != me._v.id) {
     try {
+      let whosheis = await ciscospark.people.get(data.data.personId);
+      let whatshesaid = await ciscospark.messages.get(data.data.id);
       let message = await ciscospark.messages.create({
-        text: `I heard you, ${data.data.personEmail}`,
+        text: `${whosheis.displayName} said ${whatshesaid.text}`,
         roomId: data.data.roomId
       });
       assert(message.id);
