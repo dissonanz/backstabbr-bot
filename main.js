@@ -52,7 +52,7 @@ async function createRoom(title){
   }
 };
 
-async function createWebhook(roomId, powers) {
+async function createWebhook(roomId, powers, targetRoomId) {
   console.log(`Creating webhook for ${powers} in room ${roomId}`);
   console.log(`service url is ${serviceUrl}`);
   try {
@@ -60,7 +60,7 @@ async function createWebhook(roomId, powers) {
       resource: `messages`,
       event: `created`,
       filter: `roomId=${roomId}`,
-      targetUrl: `${serviceUrl}/webhook`,
+      targetUrl: `${serviceUrl}/webhook/${targetRoomId}`,
       name: `${powers} messages`
     });
   }
@@ -92,6 +92,26 @@ async function webhook(data) {
   }
 };
 
+async function messageFairy(messageId, targetRoomId) {
+  // Listen to messages from a player in one room
+  // and parrot to the corresponding room(s)
+  // e.g. England says something in the ENG-GER
+  // room, and this service posts a message to the
+  // GER-ENG room "England: ${message}"
+  try {
+    let whatshesaid = await ciscospark.messages.get(messageId);
+    let whosheis = await ciscospark.people.get(whatshesaid.personId);
+    let msg = await ciscospark.messages.create({
+      text: whatshesaid.text,
+      roomId: targetRoomId
+    });
+    return;
+  }
+  catch(reason) {
+    return reason;
+  }
+};
+
 server.route({
   method: 'POST',
   path: '/rooms/{gameId}',
@@ -108,24 +128,24 @@ server.route({
 });
 
 server.route({
-    method: 'GET',
-    path: '/rooms/{gameId}',
-    handler: async function (request, reply) {
-        // Get the room list from spark
-        const rooms = await ciscospark.rooms.list();
-        var response = {};
-        for (const room of rooms) {
-          try {
-            assert(room.title.match('[A-Z]{3},[A-Z]{3}\ ' + request.params.gameId))
-            response[room.id] = room.title;
-          }
-          catch(reason) {
-            console.log(reason);
-          }
+  method: 'GET',
+  path: '/rooms/{gameId}',
+  handler: async function (request, reply) {
+      // Get the room list from spark
+      const rooms = await ciscospark.rooms.list();
+      var response = {};
+      for (const room of rooms) {
+        try {
+          assert(room.title.match('[A-Z]{3},[A-Z]{3}\ ' + request.params.gameId))
+          response[room.id] = room.title;
         }
-        reply(JSON.stringify(response))
-          .type('application/json');
-    }
+        catch(reason) {
+          console.log(reason);
+        }
+      }
+      reply(JSON.stringify(response))
+        .type('application/json');
+  }
 });
 
 server.route({
@@ -190,6 +210,16 @@ server.route({
 });
 
 server.route({
+  method: 'POST',
+  path: '/webhook/{targetRoomId}',
+  handler: async function(request, reply) {
+    console.log(request.payload)
+    var msg = await messageFairy(request.payload.data.id, request.params.targetRoomId);
+    reply(msg).type('application/json');
+  }
+});
+
+server.route({
   method: 'GET',
   path: '/me',
   handler: function(request, reply) {
@@ -198,5 +228,112 @@ server.route({
       .type('application/json');
   }
 });
+
+
+// def feet(feet)
+  // feet.each { |f|
+    //puts "for #{f[:name]} create webhooks #{feet-[f]}"
+  // }
+// end
+
+// def butts(powers)
+//   powers.sort.map { |power| 
+//     id=rand(100);
+//     puts "creating room for #{power}, called #{power}-#{(powers-[power]).join('-')} with id #{id}";
+//     {name: "#{power}-#{(powers-[power]).join('-')}", id: id} 
+//   }
+// end
+
+server.route({
+  method: 'POST',
+  path: '/rooms/{gameId}/{matchup}',
+  handler: async function (request, reply) {
+    console.log(`for ${request.params.matchup}`)
+    const roomNames = await calcRoomNames(request.params.matchup, request.params.gameId);
+    let promises = roomNames.map((room) => ciscospark.rooms.create(room));
+
+    let rooms = [];
+    for (let promise of promises) {
+      rooms.push(await promise);
+    }
+    console.log(rooms);
+
+    const webhooks = await calcRoomWebhooks(rooms);
+    console.log(webhooks);
+
+    let morePromises = webhooks.map((hook) => createWebhook(hook.sourceRoom, hook.title, hook.targetRoom));
+
+    let hooks = [];
+    for (let promise of morePromises) {
+      hooks.push(await promise);
+    }
+    console.log(hooks);
+
+    reply(hooks).type('application/json');
+  }
+});
+
+server.route({
+  method: 'DELETE',
+  path: '/rooms/{gameId}/{matchup}',
+  handler: async function (request, reply) {
+    const roomNames = await calcRoomNames(request.params.matchup, request.params.gameId);
+    let promises = roomNames.map((room) => deleteRoomByName(room.title));
+
+    let rooms = [];
+    for (let promise of promises) {
+      rooms.push(await promise);
+    }
+    console.log(rooms);
+
+    reply(rooms).type('application/json');
+  }
+});
+
+  function calcRoomWebhooks(powerRooms) {
+    var result = powerRooms.map( function(sourceRoom, i, allRooms) {
+      console.log(`dealing with ${sourceRoom.title}\n`);
+      var webhookRooms = allRooms.slice();
+      webhookRooms.splice(i, 1);
+      return webhookRooms.map(function(targetRoom) {
+        console.log(`  webhook for room ${targetRoom.title}\n`);
+        return {
+          sourceRoom: sourceRoom.id,
+          title: sourceRoom.title + " to " + targetRoom.title,
+          targetRoom: targetRoom.id
+         };
+      })
+    });
+    return [].concat.apply([], result)
+  }
+
+function calcRoomNames(powers, gameId) {
+  var powerArr = powers.split('-');
+  console.log(powerArr);
+  return powerArr.sort().map(
+    function(power, i, arr) {
+      var newArr = arr.slice();
+      newArr.splice(i, 1);
+      var roomName = power + "-" + newArr.join('-') + " " + gameId;
+      return { title: roomName };
+    })
+}
+
+
+async function deleteRoomByName(name) {
+  const rooms = await ciscospark.rooms.list();
+  var response = {};
+  for (const room of rooms) {
+    try {
+      assert(room.title.match(name))
+      await ciscospark.rooms.remove(room.id);
+    }
+    catch(reason) {
+      console.log(reason);
+    }
+  }
+}
+
+
 
 
