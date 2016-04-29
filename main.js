@@ -216,7 +216,7 @@ server.route({
   path: '/webhook/{targetRoomId}',
   handler: async function(request, reply) {
     console.log(request.payload)
-    var msg = await messageFairy(request.payload.data.id, request.params.targetRoomId, request.payload.name);
+    var msg = await messageFairy(request.payload.data.id, request.params.targetRoomId, request.payload.name + ": ");
     reply(msg).type('application/json');
   }
 });
