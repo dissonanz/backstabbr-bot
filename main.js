@@ -92,7 +92,7 @@ async function webhook(data) {
   }
 };
 
-async function messageFairy(messageId, targetRoomId) {
+async function messageFairy(messageId, targetRoomId, prefix) {
   // Listen to messages from a player in one room
   // and parrot to the corresponding room(s)
   // e.g. England says something in the ENG-GER
@@ -103,7 +103,7 @@ async function messageFairy(messageId, targetRoomId) {
     if (whatshesaid.personId != me._v.id) {
       let whosheis = await ciscospark.people.get(whatshesaid.personId);
       let msg = await ciscospark.messages.create({
-        text: whatshesaid.text,
+        text: prefix + whatshesaid.text,
         roomId: targetRoomId
       });
       return;
@@ -216,7 +216,7 @@ server.route({
   path: '/webhook/{targetRoomId}',
   handler: async function(request, reply) {
     console.log(request.payload)
-    var msg = await messageFairy(request.payload.data.id, request.params.targetRoomId);
+    var msg = await messageFairy(request.payload.data.id, request.params.targetRoomId, request.payload.name);
     reply(msg).type('application/json');
   }
 });
@@ -292,22 +292,22 @@ server.route({
   }
 });
 
-  function calcRoomWebhooks(powerRooms) {
-    var result = powerRooms.map( function(sourceRoom, i, allRooms) {
-      console.log(`dealing with ${sourceRoom.title}\n`);
-      var webhookRooms = allRooms.slice();
-      webhookRooms.splice(i, 1);
-      return webhookRooms.map(function(targetRoom) {
-        console.log(`  webhook for room ${targetRoom.title}\n`);
-        return {
-          sourceRoom: sourceRoom.id,
-          title: sourceRoom.title + " to " + targetRoom.title,
-          targetRoom: targetRoom.id
-         };
-      })
-    });
-    return [].concat.apply([], result)
-  }
+function calcRoomWebhooks(powerRooms) {
+  var result = powerRooms.map( function(sourceRoom, i, allRooms) {
+    console.log(`dealing with ${sourceRoom.title}\n`);
+    var webhookRooms = allRooms.slice();
+    webhookRooms.splice(i, 1);
+    return webhookRooms.map(function(targetRoom) {
+      console.log(`  webhook for room ${targetRoom.title}\n`);
+      return {
+        sourceRoom: sourceRoom.id,
+        title: sourceRoom.title.split(' ')[0].split('-')[0],
+        targetRoom: targetRoom.id
+       };
+    })
+  });
+  return [].concat.apply([], result)
+}
 
 function calcRoomNames(powers, gameId) {
   var powerArr = powers.split('-');
