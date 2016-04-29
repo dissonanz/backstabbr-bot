@@ -61,7 +61,7 @@ async function createWebhook(roomId, powers, targetRoomId) {
       event: `created`,
       filter: `roomId=${roomId}`,
       targetUrl: `${serviceUrl}/webhook/${targetRoomId}`,
-      name: `${powers} messages`
+      name: `${powers}`
     });
   }
   catch(reason) {
