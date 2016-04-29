@@ -100,12 +100,14 @@ async function messageFairy(messageId, targetRoomId) {
   // GER-ENG room "England: ${message}"
   try {
     let whatshesaid = await ciscospark.messages.get(messageId);
-    let whosheis = await ciscospark.people.get(whatshesaid.personId);
-    let msg = await ciscospark.messages.create({
-      text: whatshesaid.text,
-      roomId: targetRoomId
-    });
-    return;
+    if (whatshesaid.personId != me._v.id) {
+      let whosheis = await ciscospark.people.get(whatshesaid.personId);
+      let msg = await ciscospark.messages.create({
+        text: whatshesaid.text,
+        roomId: targetRoomId
+      });
+      return;
+    }
   }
   catch(reason) {
     return reason;
