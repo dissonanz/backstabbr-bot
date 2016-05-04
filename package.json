@@ -10,7 +10,8 @@
     "babel-register": "^6.7.2",
     "ciscospark": "^0.6.3",
     "hapi": "^13.3.0",
-    "js-combinatorics": "^0.5.1"
+    "js-combinatorics": "^0.5.1",
+    "neo4j-driver": "^1.0.0"
   },
   "devDependencies": {},
   "scripts": {

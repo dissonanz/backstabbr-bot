@@ -5,6 +5,12 @@ import combinatorics from 'js-combinatorics';
 import ciscospark from 'ciscospark/es6';
 const Hapi = require('hapi');
 
+//database
+var neo4j = require('neo4j-driver').v1;
+var driver = neo4j.driver(`bolt://${process.env.NEO4J_HOST}`, neo4j.auth.basic("neo4j", "poop"), {connectionPoolSize: 50});
+var session = driver.session();
+
+
 assert(process.env.CISCOSPARK_ACCESS_TOKEN);
 // assert(process.env.CISCOSPARK_REFRESH_TOKEN);
 assert(process.env.CISCOSPARK_CLIENT_ID);
@@ -16,6 +22,10 @@ server.connection({ port: process.env.PORT });
 const roomsForTwo = combinatorics.combination(['AUS','ENG','GER','RUS','TUR','ITA','FRA'],2);
 const roomsForThree = combinatorics.combination(['AUS','ENG','GER','RUS','TUR','ITA','FRA'],3);
 const serviceUrl = process.env.SERVICE_URL || `https://backstabbr-bot.herokuapp.com`;
+
+var game = require(`./lib/db/game`);
+var room = require(`./lib/db/room`);
+var player = require(`./lib/db/player`);
 
 server.start((err) => {
 
@@ -336,6 +346,69 @@ async function deleteRoomByName(name) {
   }
 }
 
+server.route({
+  method: 'POST',
+  path: '/games/{gameId}',
+  handler: async function (request, reply) {
+    let output = await game.add(request.params.gameId, session);
+    reply(output);
+  }
+})
 
+server.route({
+  method: 'GET',
+  path: '/games/{gameId}',
+  handler: async function (request, reply) {
+    let output = await game.get(request.params.gameId, session);
+    reply(output);
+  }
+})
+
+server.route({
+  method: 'POST',
+  path: '/games/{gameId}/room/{roomId}',
+  handler: async function (request, reply) {
+    let output = await room.add(request.params.roomId, request.params.name, request.params.gameId, session);
+    reply(output);
+  }
+})
+
+server.route({
+  method: 'GET',
+  path: '/games/{gameId}/room/{roomId}',
+  handler: async function (request, reply) {
+    let output = await room.get(request.params.roomId, session);
+    reply(output);
+  }
+})
+
+server.route({
+  method: 'POST',
+  path: '/player/{roomId}',
+  handler: async function (request, reply) {
+    let output = await room.add(request.params.roomId, request.params.name, request.params.gameId, session);
+    reply(output);
+  }
+})
+
+server.route({
+  method: 'POST',
+  path: '/player',
+  handler: async function (request, reply) {
+    console.log(request.query);
+    let output = await player.add(request.query.name, request.query.email, session);
+    reply(output);
+  }
+})
+
+server.route({
+  method: 'POST',
+  path: '/game/{gameId}/player',
+  handler: async function (request, reply) {
+    console.log(request.query);
+    let output = await player.addToGame(request.query.name, request.params.gameId, request.query.role, session);
+    reply(output);
+  }
+})
 
 
