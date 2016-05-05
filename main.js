@@ -27,6 +27,56 @@ var game = require(`./lib/db/game`);
 // var room = require(`./lib/db/room`);
 // var player = require(`./lib/db/player`);
 
+var createJwt = function (data) {
+  var JWT   = require('jsonwebtoken');
+  var obj   = data;
+  var token = JWT.sign(obj, 'NeverShareYourSecret');
+  var url   = "/path?token="+token;
+  return token
+};
+
+var validate = function (decoded, request, callback) {
+
+  // do your checks to see if the person is valid
+  if (!decoded.access_token || !decoded.refresh_token) {
+    return callback(null, false);
+  }
+  else {
+    return callback(null, true);
+  }
+};
+
+server.register(require('hapi-auth-jwt2'), function (err) {
+
+  if(err){
+    console.log(err);
+  }
+
+  server.auth.strategy('jwt', 'jwt',
+  { key: 'NeverShareYourSecret',          // Never Share your secret key
+    validateFunc: validate,            // validate function defined above
+    verifyOptions: { algorithms: [ 'HS256' ] } // pick a strong algorithm
+  });
+
+  server.auth.default('jwt');
+
+  server.route([
+    {
+      method: "GET", path: "/", config: { auth: false },
+      handler: function(request, reply) {
+        reply({text: 'Token not required'});
+      }
+    },
+    {
+      method: 'GET', path: '/restricted', config: { auth: 'jwt' },
+      handler: function(request, reply) {
+        reply({text: 'You used a Token!'})
+        .header("Authorization", request.headers.authorization);
+      }
+    }
+  ]);
+});
+
 server.start((err) => {
 
     if (err) {
@@ -36,13 +86,20 @@ server.start((err) => {
 });
 
 server.route({
-  method: 'GET',
+  method: ['GET', 'POST'],
   path: '/auth',
+  config: { auth: false },
   handler: async function (request, reply) {
     console.log(request.query);
-    const out = await ciscospark.authenticate(request.query);
-    reply(out)
-      .type('application/json');
+    var spark = await ciscospark.init();
+    await spark.authenticate(request.query);
+    // console.log(ciscospark.authorization.access_token);
+    // console.log(ciscospark.access_token);
+    // const rooms = await spark.rooms.list();
+    // const auth = ciscospark.getAuthorization;
+
+    reply(createJwt(JSON.stringify(spark.credentials.authorization)))
+     .type('application/json');
   }
 })
 
@@ -260,10 +317,10 @@ server.route({
 // end
 
 // def butts(powers)
-//   powers.sort.map { |power| 
+//   powers.sort.map { |power|
 //     id=rand(100);
 //     puts "creating room for #{power}, called #{power}-#{(powers-[power]).join('-')} with id #{id}";
-//     {name: "#{power}-#{(powers-[power]).join('-')}", id: id} 
+//     {name: "#{power}-#{(powers-[power]).join('-')}", id: id}
 //   }
 // end
 
