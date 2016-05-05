@@ -36,6 +36,17 @@ server.start((err) => {
 });
 
 server.route({
+  method: 'GET',
+  path: '/auth',
+  handler: async function (request, reply) {
+    console.log(request.query);
+    const out = await ciscospark.authenticate(request.query);
+    reply(out)
+      .type('application/json');
+  }
+})
+
+server.route({
     method: 'GET',
     path: '/rooms',
     handler: async function (request, reply) {
