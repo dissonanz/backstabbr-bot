@@ -24,8 +24,8 @@ const roomsForThree = combinatorics.combination(['AUS','ENG','GER','RUS','TUR','
 const serviceUrl = process.env.SERVICE_URL || `https://backstabbr-bot.herokuapp.com`;
 
 var game = require(`./lib/db/game`);
-var room = require(`./lib/db/room`);
-var player = require(`./lib/db/player`);
+// var room = require(`./lib/db/room`);
+// var player = require(`./lib/db/player`);
 
 server.start((err) => {
 
