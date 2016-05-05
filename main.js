@@ -11,7 +11,7 @@ var driver = neo4j.driver(`bolt://${process.env.NEO4J_HOST}`, neo4j.auth.basic("
 var session = driver.session();
 
 
-assert(process.env.CISCOSPARK_ACCESS_TOKEN);
+// assert(process.env.CISCOSPARK_ACCESS_TOKEN);
 // assert(process.env.CISCOSPARK_REFRESH_TOKEN);
 assert(process.env.CISCOSPARK_CLIENT_ID);
 assert(process.env.CISCOSPARK_CLIENT_SECRET);
