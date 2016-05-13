@@ -108,9 +108,22 @@ server.route({
     path: '/rooms',
     handler: async function (request, reply) {
         // Get the room list from spark
-        const rooms = await ciscospark.rooms.list();
-        reply(JSON.stringify(rooms))
-          .type('application/json');
+        try
+        {
+          console.log(request.auth.credentials);
+          var spark = await ciscospark.init({
+            credentials: {
+              authorization: request.auth.credentials
+            }
+          });
+          await spark.authorize();
+          const rooms = await spark.rooms.list();
+          reply(JSON.stringify(rooms))
+            .type('application/json');
+        }
+        catch(error) {
+          console.error(error.stack);
+        }
     }
 });
 
