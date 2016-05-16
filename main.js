@@ -91,10 +91,18 @@ server.route({
   config: { auth: false },
   handler: async function (request, reply) {
     console.log(request.query);
-    var spark = await ciscospark.authenticate(request.query);
-    console.log(spark);
+    var auth = await ciscospark.getAuth(request.query);
+    console.log(auth);
+    const me = await ciscospark.me(auth);
+    console.log(me);
+    const combined = {
+      id: me,
+      authorization: auth
+    };
+    console.log(combined);
+    var jwt = createJwt(combined)
     // await spark.authenticate(request.query);
-    reply(createJwt(spark))
+    reply(jwt)
     .type('application/json');
   }
 })
