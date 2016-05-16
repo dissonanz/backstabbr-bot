@@ -2,8 +2,9 @@
 
 import assert from 'assert';
 import combinatorics from 'js-combinatorics';
-import ciscospark from 'ciscospark/es6';
 const Hapi = require('hapi');
+
+var ciscospark = require('./lib/plugins/ciscospark');
 
 //database
 var neo4j = require('neo4j-driver').v1;
@@ -61,28 +62,27 @@ server.register(require('hapi-auth-jwt2'), function (err) {
   server.auth.default('jwt');
 
   server.route([
-    {
-      method: "GET", path: "/", config: { auth: false },
-      handler: function(request, reply) {
-        reply({text: 'Token not required'});
-      }
-    },
-    {
-      method: 'GET', path: '/restricted', config: { auth: 'jwt' },
-      handler: function(request, reply) {
-        reply({text: 'You used a Token!'})
-        .header("Authorization", request.headers.authorization);
-      }
+  {
+    method: "GET", path: "/", config: { auth: false },
+    handler: function(request, reply) {
+      reply({text: 'Token not required'});
     }
+  },
+  {
+    method: 'GET', path: '/restricted', config: { auth: 'jwt' },
+    handler: function(request, reply) {
+      reply({text: 'You used a Token! Bully for you!'})
+      .header("Authorization", request.headers.authorization);
+    }
+  }
   ]);
 });
 
 server.start((err) => {
-
-    if (err) {
-        throw err;
-    }
-    console.log('Server running at:', server.info.uri);
+  if (err) {
+    throw err;
+  }
+  console.log('Server running at:', server.info.uri);
 });
 
 server.route({
@@ -91,43 +91,40 @@ server.route({
   config: { auth: false },
   handler: async function (request, reply) {
     console.log(request.query);
-    var spark = await ciscospark.init();
-    await spark.authenticate(request.query);
-    // console.log(ciscospark.authorization.access_token);
-    // console.log(ciscospark.access_token);
-    // const rooms = await spark.rooms.list();
-    // const auth = ciscospark.getAuthorization;
-
-    reply(createJwt(JSON.stringify(spark.credentials.authorization)))
-     .type('application/json');
+    var spark = await ciscospark.authenticate(request.query);
+    console.log(spark);
+    // await spark.authenticate(request.query);
+    reply(createJwt(spark))
+    .type('application/json');
   }
 })
 
 server.route({
-    method: 'GET',
-    path: '/rooms',
-    handler: async function (request, reply) {
+  method: 'GET',
+  path: '/rooms',
+  handler: async function (request, reply) {
         // Get the room list from spark
         try
         {
-          console.log(request.auth.credentials);
           var spark = await ciscospark.init({
             credentials: {
               authorization: request.auth.credentials
+            },
+            config: {
+              hydraServiceUrl: ciscospark.config.hydraServiceUrl
             }
           });
-          await spark.authorize();
           const rooms = await spark.rooms.list();
           reply(JSON.stringify(rooms))
-            .type('application/json');
+          .type('application/json');
         }
         catch(error) {
           console.error(error.stack);
         }
-    }
-});
+      }
+    });
 
-const me = ciscospark.people.get(`me`);
+const me = '';//ciscospark.people.get(`me`);
 
 async function createRoom(title){
   try {
@@ -209,14 +206,14 @@ server.route({
   method: 'POST',
   path: '/rooms/{gameId}',
   handler: async function (request, reply) {
-      roomsForTwo.forEach( function(r) {
-        console.log(`creating room for ${r}`);
-        createRoom(r + " " + request.params.gameId);
-      });
-      roomsForThree.forEach( function(r) {
-        createRoom(r + " " + request.params.gameId);
-      });
-      reply("Rooms created");
+    roomsForTwo.forEach( function(r) {
+      console.log(`creating room for ${r}`);
+      createRoom(r + " " + request.params.gameId);
+    });
+    roomsForThree.forEach( function(r) {
+      createRoom(r + " " + request.params.gameId);
+    });
+    reply("Rooms created");
   }
 });
 
@@ -237,9 +234,9 @@ server.route({
         }
       }
       reply(JSON.stringify(response))
-        .type('application/json');
-  }
-});
+      .type('application/json');
+    }
+  });
 
 server.route({
   method: 'DELETE',
@@ -258,7 +255,7 @@ server.route({
       }
     }
     reply(JSON.stringify(response))
-      .type('application/json');
+    .type('application/json');
   }
 });
 
@@ -298,7 +295,7 @@ server.route({
   handler: async function(request, reply) {
     const webhooks = Array.from(await ciscospark.webhooks.list());
     reply(JSON.stringify(webhooks))
-      .type('application/json');
+    .type('application/json');
   }
 });
 
@@ -315,9 +312,10 @@ server.route({
 server.route({
   method: 'GET',
   path: '/me',
-  handler: function(request, reply) {
-    console.log(me._v.id);
-    reply(me)
+  handler: async function(request, reply) {
+    // console.log(me._v.id);
+    const out = await ciscospark.me(request.auth.credentials);
+    reply(out)
       .type('application/json');
   }
 });
@@ -394,7 +392,7 @@ function calcRoomWebhooks(powerRooms) {
         sourceRoom: sourceRoom.id,
         title: sourceRoom.title.split(' ')[0].split('-')[0],
         targetRoom: targetRoom.id
-       };
+      };
     })
   });
   return [].concat.apply([], result)
