@@ -3,6 +3,7 @@
 import assert from 'assert';
 import combinatorics from 'js-combinatorics';
 const Hapi = require('hapi');
+const JWT_KEY = process.env.JWT_KEY || 'NeverShareYourSecret';
 
 var ciscospark = require('./lib/plugins/ciscospark');
 
@@ -39,7 +40,7 @@ var createJwt = function (data) {
 var validate = function (decoded, request, callback) {
 
   // do your checks to see if the person is valid
-  if (!decoded.access_token || !decoded.refresh_token) {
+  if (!decoded.spark.authorization.access_token || !decoded.spark.authorization.refresh_token) {
     return callback(null, false);
   }
   else {
@@ -54,7 +55,7 @@ server.register(require('hapi-auth-jwt2'), function (err) {
   }
 
   server.auth.strategy('jwt', 'jwt',
-  { key: 'NeverShareYourSecret',          // Never Share your secret key
+  { key: JWT_KEY,          // Never Share your secret key
     validateFunc: validate,            // validate function defined above
     verifyOptions: { algorithms: [ 'HS256' ] } // pick a strong algorithm
   });
@@ -78,6 +79,50 @@ server.register(require('hapi-auth-jwt2'), function (err) {
   ]);
 });
 
+server.register(require('vision'), function (err) {
+
+  if(err) {
+    console.log(err)
+  }
+
+  server.views({
+    engines: {
+        html: require('handlebars')
+    },
+    relativeTo: __dirname,
+    path: 'templates'
+  });
+
+});
+
+server.register(require('inert'), (err) => {
+
+  if (err) {
+    throw err;
+  }
+  server.route({
+    method: 'GET',
+    path: '/authc.js',
+    config: {
+      auth: false,
+    },
+    handler: function (request, reply) {
+      reply.file('templates/authc.js');
+    }
+  })
+});
+
+server.route({
+  method: 'GET',
+  path: '/',
+  config: {
+    auth: false,
+  },
+  handler: function (request, reply) {
+    reply.view('index');
+  }
+});
+
 server.start((err) => {
   if (err) {
     throw err;
@@ -90,18 +135,15 @@ server.route({
   path: '/auth',
   config: { auth: false },
   handler: async function (request, reply) {
-    console.log(request.query);
     var auth = await ciscospark.getAuth(request.query);
-    console.log(auth);
     const me = await ciscospark.me(auth);
-    console.log(me);
     const combined = {
-      id: me,
-      authorization: auth
+      spark: {
+      	id: me,
+	      authorization: auth
+      }
     };
-    console.log(combined);
-    var jwt = createJwt(combined)
-    // await spark.authenticate(request.query);
+    var jwt = await createJwt(combined)
     reply(jwt)
     .type('application/json');
   }
