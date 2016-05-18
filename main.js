@@ -229,58 +229,30 @@ async function messageFairy(messageId, targetRoomId, prefix) {
 s.route({
   method: 'POST',
   path: '/rooms/{gameId}',
-  
-  handler: async function (request, reply) {
-    roomsForTwo.forEach( function(r) {
-      console.log(`creating room for ${r}`);
-      createRoom(r + " " + request.params.gameId);
-    });
-    roomsForThree.forEach( function(r) {
-      createRoom(r + " " + request.params.gameId);
-    });
-    reply("Rooms created");
+  config: {
+    tags: ['api'],
+    description: 'Create new rooms for game {gameId}, includes each one-on-one, all, and one->bot',
+    handler: rooms.createGameRooms
   }
 });
 
 s.route({
   method: 'GET',
   path: '/rooms/{gameId}',
-  handler: async function (request, reply) {
-      // Get the room list from spark
-      const rooms = await ciscospark.rooms.list();
-      var response = {};
-      for (const room of rooms) {
-        try {
-          assert(room.title.match('[A-Z]{3},[A-Z]{3}\ ' + request.params.gameId))
-          response[room.id] = room.title;
-        }
-        catch(reason) {
-          console.log(reason);
-        }
-      }
-      reply(JSON.stringify(response))
-      .type('application/json');
-    }
-  });
+  config: {
+    tags: ['api'],
+    description: 'Get rooms for game {gameId}',
+    handler: rooms.get
+  }
+});
 
 s.route({
   method: 'DELETE',
   path: '/rooms/{gameId}',
-  handler: async function (request, reply) {
-    // Get the room list from spark
-    const rooms = await ciscospark.rooms.list();
-    var response = {};
-    for (const room of rooms) {
-      try {
-        assert(room.title.match('[A-Z]{3}(,[A-Z]{3}){1,2}\ ' + request.params.gameId))
-        await ciscospark.rooms.remove(room.id);
-      }
-      catch(reason) {
-        console.log(reason);
-      }
-    }
-    reply(JSON.stringify(response))
-    .type('application/json');
+  config: {
+    tags: ['api'],
+    description: 'Remove all rooms associated with game {gameId}',
+    handler: rooms.removeGameRooms
   }
 });
 
