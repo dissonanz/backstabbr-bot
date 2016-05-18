@@ -7,7 +7,7 @@ const JWT_KEY = process.env.JWT_KEY || 'NeverShareYourSecret';
 var ciscospark = require('./lib/plugins/ciscospark');
 var server     = require('./lib/controllers/server');
 
-var s = server.server(process.env.PORT)
+var s = server.server(process.env.PORT);
 
 //database
 var neo4j = require('neo4j-driver').v1;
@@ -141,7 +141,11 @@ s.route({
 s.route({
   method: 'GET',
   path: '/rooms',
-  handler: rooms.list
+  config: {
+  	tags: ['api'],
+  	description: 'All rooms for given user',
+  	handler: rooms.list
+  }
 });
 
 const me = '';//ciscospark.people.get(`me`);
