@@ -2,10 +2,12 @@
 
 import assert from 'assert';
 import combinatorics from 'js-combinatorics';
-const Hapi = require('hapi');
 const JWT_KEY = process.env.JWT_KEY || 'NeverShareYourSecret';
 
 var ciscospark = require('./lib/plugins/ciscospark');
+var server     = require('./lib/controllers/server');
+
+var s = server.server(process.env.PORT)
 
 //database
 var neo4j = require('neo4j-driver').v1;
@@ -13,20 +15,13 @@ var driver = neo4j.driver(`bolt://${process.env.NEO4J_HOST}`, neo4j.auth.basic("
 var session = driver.session();
 
 
-// assert(process.env.CISCOSPARK_ACCESS_TOKEN);
-// assert(process.env.CISCOSPARK_REFRESH_TOKEN);
-assert(process.env.CISCOSPARK_CLIENT_ID);
-assert(process.env.CISCOSPARK_CLIENT_SECRET);
-
-const server = new Hapi.Server();
-server.connection({ port: process.env.PORT });
-
 const roomsForTwo = combinatorics.combination(['AUS','ENG','GER','RUS','TUR','ITA','FRA'],2);
 const roomsForThree = combinatorics.combination(['AUS','ENG','GER','RUS','TUR','ITA','FRA'],3);
 const serviceUrl = process.env.SERVICE_URL || `https://backstabbr-bot.herokuapp.com`;
 
 var game = require(`./lib/db/game`);
 // var room = require(`./lib/db/room`);
+var rooms = require(`./lib/controllers/rooms`);
 // var player = require(`./lib/db/player`);
 
 var createJwt = function (data) {
@@ -48,21 +43,21 @@ var validate = function (decoded, request, callback) {
   }
 };
 
-server.register(require('hapi-auth-jwt2'), function (err) {
+s.register(require('hapi-auth-jwt2'), function (err) {
 
   if(err){
     console.log(err);
   }
 
-  server.auth.strategy('jwt', 'jwt',
+  s.auth.strategy('jwt', 'jwt',
   { key: JWT_KEY,          // Never Share your secret key
     validateFunc: validate,            // validate function defined above
     verifyOptions: { algorithms: [ 'HS256' ] } // pick a strong algorithm
   });
 
-  server.auth.default('jwt');
+  s.auth.default('jwt');
 
-  server.route([
+  s.route([
   {
     method: 'GET', path: '/restricted', config: { auth: 'jwt' },
     handler: function(request, reply) {
@@ -73,13 +68,13 @@ server.register(require('hapi-auth-jwt2'), function (err) {
   ]);
 });
 
-server.register(require('vision'), function (err) {
+s.register(require('vision'), function (err) {
 
   if(err) {
     console.log(err)
   }
 
-  server.views({
+  s.views({
     engines: {
         html: require('handlebars')
     },
@@ -89,12 +84,12 @@ server.register(require('vision'), function (err) {
 
 });
 
-server.register(require('inert'), (err) => {
+s.register(require('inert'), (err) => {
 
   if (err) {
     throw err;
   }
-  server.route({
+  s.route({
     method: 'GET',
     path: '/authc.js',
     config: {
@@ -106,7 +101,7 @@ server.register(require('inert'), (err) => {
   })
 });
 
-server.route({
+s.route({
   method: 'GET',
   path: '/',
   config: {
@@ -117,14 +112,14 @@ server.route({
   }
 });
 
-server.start((err) => {
+s.start((err) => {
   if (err) {
     throw err;
   }
-  console.log('Server running at:', server.info.uri);
+  console.log('Server running at:', s.info.uri);
 });
 
-server.route({
+s.route({
   method: ['GET', 'POST'],
   path: '/auth',
   config: { auth: false },
@@ -143,30 +138,11 @@ server.route({
   }
 })
 
-server.route({
+s.route({
   method: 'GET',
   path: '/rooms',
-  handler: async function (request, reply) {
-        // Get the room list from spark
-        try
-        {
-          var spark = await ciscospark.init({
-            credentials: {
-              authorization: request.auth.credentials
-            },
-            config: {
-              hydraServiceUrl: ciscospark.config.hydraServiceUrl
-            }
-          });
-          const rooms = await spark.rooms.list();
-          reply(JSON.stringify(rooms))
-          .type('application/json');
-        }
-        catch(error) {
-          console.error(error.stack);
-        }
-      }
-    });
+  handler: rooms.list
+});
 
 const me = '';//ciscospark.people.get(`me`);
 
@@ -246,7 +222,7 @@ async function messageFairy(messageId, targetRoomId, prefix) {
   }
 };
 
-server.route({
+s.route({
   method: 'POST',
   path: '/rooms/{gameId}',
   handler: async function (request, reply) {
@@ -261,7 +237,7 @@ server.route({
   }
 });
 
-server.route({
+s.route({
   method: 'GET',
   path: '/rooms/{gameId}',
   handler: async function (request, reply) {
@@ -282,7 +258,7 @@ server.route({
     }
   });
 
-server.route({
+s.route({
   method: 'DELETE',
   path: '/rooms/{gameId}',
   handler: async function (request, reply) {
@@ -303,27 +279,19 @@ server.route({
   }
 });
 
-server.route({
+s.route({
   method: 'DELETE',
   path: '/room/{id}',
-  handler: async function(request, reply) {
-    console.log(request.params.id);
-    await ciscospark.rooms.remove(request.params.id);
-
-    try {
-      room = await ciscospark.rooms.get(request.params.id);
-      assert(false, `the previous line should have failed`);
-      console.log(room);
-    }
-    catch(reason) {
-      assert.equal(reason.statusCode, 404);
-      console.log(reason);
-      reply("Failed somehow");
-    }
-  }
+  handler: rooms.remove
 });
 
-server.route({
+s.route({
+  method: 'POST',
+  path: '/room',
+  handler: rooms.create
+});
+
+s.route({
   method: 'POST',
   path: '/webhook',
   handler: function(request, reply) {
@@ -333,7 +301,7 @@ server.route({
   }
 });
 
-server.route({
+s.route({
   method: 'GET',
   path: '/webhooks',
   handler: async function(request, reply) {
@@ -343,7 +311,7 @@ server.route({
   }
 });
 
-server.route({
+s.route({
   method: 'POST',
   path: '/webhook/{targetRoomId}',
   handler: async function(request, reply) {
@@ -353,7 +321,7 @@ server.route({
   }
 });
 
-server.route({
+s.route({
   method: 'GET',
   path: '/me',
   handler: async function(request, reply) {
@@ -379,7 +347,7 @@ server.route({
 //   }
 // end
 
-server.route({
+s.route({
   method: 'POST',
   path: '/rooms/{gameId}/{matchup}',
   handler: async function (request, reply) {
@@ -408,7 +376,7 @@ server.route({
   }
 });
 
-server.route({
+s.route({
   method: 'DELETE',
   path: '/rooms/{gameId}/{matchup}',
   handler: async function (request, reply) {
@@ -469,7 +437,7 @@ async function deleteRoomByName(name) {
   }
 }
 
-server.route({
+s.route({
   method: 'POST',
   path: '/games/{gameId}',
   handler: async function (request, reply) {
@@ -478,7 +446,7 @@ server.route({
   }
 })
 
-server.route({
+s.route({
   method: 'GET',
   path: '/games/{gameId}',
   handler: async function (request, reply) {
@@ -487,7 +455,7 @@ server.route({
   }
 })
 
-server.route({
+s.route({
   method: 'POST',
   path: '/games/{gameId}/room/{roomId}',
   handler: async function (request, reply) {
@@ -496,7 +464,7 @@ server.route({
   }
 })
 
-server.route({
+s.route({
   method: 'GET',
   path: '/games/{gameId}/room/{roomId}',
   handler: async function (request, reply) {
@@ -505,7 +473,7 @@ server.route({
   }
 })
 
-server.route({
+s.route({
   method: 'POST',
   path: '/player/{roomId}',
   handler: async function (request, reply) {
@@ -514,7 +482,7 @@ server.route({
   }
 })
 
-server.route({
+s.route({
   method: 'POST',
   path: '/player',
   handler: async function (request, reply) {
@@ -524,7 +492,7 @@ server.route({
   }
 })
 
-server.route({
+s.route({
   method: 'POST',
   path: '/game/{gameId}/player',
   handler: async function (request, reply) {
