@@ -128,8 +128,8 @@ s.route({
     const me = await ciscospark.me(auth);
     const combined = {
       spark: {
-      	id: me,
-	      authorization: auth
+        id: me,
+        authorization: auth
       }
     };
     var jwt = await createJwt(combined)
@@ -142,9 +142,9 @@ s.route({
   method: 'GET',
   path: '/rooms',
   config: {
-  	tags: ['api'],
-  	description: 'All rooms for given user',
-  	handler: rooms.list
+    tags: ['api'],
+    description: 'All rooms for given user',
+    handler: rooms.list
   }
 });
 
@@ -229,6 +229,7 @@ async function messageFairy(messageId, targetRoomId, prefix) {
 s.route({
   method: 'POST',
   path: '/rooms/{gameId}',
+  
   handler: async function (request, reply) {
     roomsForTwo.forEach( function(r) {
       console.log(`creating room for ${r}`);
