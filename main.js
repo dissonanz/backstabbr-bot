@@ -11,7 +11,7 @@ var s = server.server(process.env.PORT);
 
 //database
 var neo4j = require('neo4j-driver').v1;
-var driver = neo4j.driver(`bolt://${process.env.NEO4J_HOST}`, neo4j.auth.basic("neo4j", "poop"), {connectionPoolSize: 50});
+var driver = neo4j.driver(`bolt://${process.env.NEO4J_HOST}`, neo4j.auth.basic(process.env.NEO4J_USER, process.env.NEO4J_PASSWORD), {connectionPoolSize: 50});
 var session = driver.session();
 
 
@@ -425,10 +425,14 @@ s.route({
 
 s.route({
   method: 'GET',
-  path: '/games/{gameId}',
-  handler: async function (request, reply) {
-    let output = await game.get(request.params.gameId, session);
-    reply(output);
+  path: '/games/{gameId?}',
+  config: {
+    tags: ['api'],
+    description: 'Return information about a game. If gameId is null, return all games.',
+    handler: async function (request, reply) {
+      let output = await game.get(request.params.gameId, session);
+      reply(output);
+    }
   }
 })
 
