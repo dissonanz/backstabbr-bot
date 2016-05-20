@@ -9,20 +9,14 @@ var server     = require('./lib/controllers/server');
 
 var s = server.server(process.env.PORT);
 
-//database
-var neo4j = require('neo4j-driver').v1;
-var driver = neo4j.driver(`bolt://${process.env.NEO4J_HOST}`, neo4j.auth.basic(process.env.NEO4J_USER, process.env.NEO4J_PASSWORD), {connectionPoolSize: 50});
-var session = driver.session();
-
-
 const roomsForTwo = combinatorics.combination(['AUS','ENG','GER','RUS','TUR','ITA','FRA'],2);
 const roomsForThree = combinatorics.combination(['AUS','ENG','GER','RUS','TUR','ITA','FRA'],3);
 const serviceUrl = process.env.SERVICE_URL || `https://backstabbr-bot.herokuapp.com`;
 
-var game = require(`./lib/db/game`);
+var games = require(`./lib/controllers/games`);
 // var room = require(`./lib/db/room`);
 var rooms = require(`./lib/controllers/rooms`);
-// var player = require(`./lib/db/player`);
+var player = require(`./lib/db/player`);
 
 var createJwt = function (data) {
   var JWT   = require('jsonwebtoken');
@@ -418,7 +412,7 @@ s.route({
   method: 'POST',
   path: '/games/{gameId}',
   handler: async function (request, reply) {
-    let output = await game.add(request.params.gameId, session);
+    let output = await games.add({id: request.params.gameId});
     reply(output);
   }
 })
@@ -430,7 +424,7 @@ s.route({
     tags: ['api'],
     description: 'Return information about a game. If gameId is null, return all games.',
     handler: async function (request, reply) {
-      let output = await game.get(request.params.gameId, session);
+      let output = await games.find(request.params.gameId);
       reply(output);
     }
   }
@@ -459,6 +453,16 @@ s.route({
   path: '/player/{roomId}',
   handler: async function (request, reply) {
     let output = await room.add(request.params.roomId, request.params.name, request.params.gameId, session);
+    reply(output);
+  }
+})
+
+s.route({
+  method: 'GET',
+  path: '/players',
+  handler: async function (request, reply) {
+    console.log(request.query);
+    let output = await player.list(session);
     reply(output);
   }
 })
