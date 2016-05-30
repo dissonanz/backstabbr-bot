@@ -405,11 +405,22 @@ async function deleteRoomByName(name) {
 
 s.route({
   method: 'POST',
-  path: '/games/{gameId}',
-  handler: async function (request, reply) {
-    let output = await games.add({id: request.params.gameId});
-    reply(output);
+  path: '/games',
+  config: {
+    tags: ['api'],
+    description: 'Create game {gameId}',
+    handler: games.create
   }
+})
+
+s.route({
+  method: 'DELETE',
+  path: '/games/{gameId}',
+  config: {
+    tags: ['api'],
+    description: 'Delete game {gameId}',
+    handler: games.del
+   }
 })
 
 s.route({
@@ -418,10 +429,7 @@ s.route({
   config: {
     tags: ['api'],
     description: 'Return information about a game. If gameId is null, return all games.',
-    handler: async function (request, reply) {
-      let output = await games.find(request.params.gameId);
-      reply(output);
-    }
+    handler: games.get
   }
 })
 
