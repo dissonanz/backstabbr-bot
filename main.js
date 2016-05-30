@@ -16,7 +16,7 @@ const serviceUrl = process.env.SERVICE_URL || `https://backstabbr-bot.herokuapp.
 var games = require(`./lib/controllers/games`);
 // var room = require(`./lib/db/room`);
 var rooms = require(`./lib/controllers/rooms`);
-var player = require(`./lib/db/player`);
+var players = require(`./lib/controllers/players`);
 
 var createJwt = function (data) {
   var JWT   = require('jsonwebtoken');
@@ -295,12 +295,7 @@ s.route({
 s.route({
   method: 'GET',
   path: '/me',
-  handler: async function(request, reply) {
-    // console.log(me._v.id);
-    const out = await ciscospark.me(request.auth.credentials);
-    reply(out)
-      .type('application/json');
-  }
+  handler: players.me
 });
 
 
@@ -462,7 +457,7 @@ s.route({
   path: '/players',
   handler: async function (request, reply) {
     console.log(request.query);
-    let output = await player.list(session);
+    let output = await players.list(session);
     reply(output);
   }
 })
@@ -470,11 +465,7 @@ s.route({
 s.route({
   method: 'POST',
   path: '/player',
-  handler: async function (request, reply) {
-    console.log(request.query);
-    let output = await player.add(request.query.name, request.query.email, session);
-    reply(output);
-  }
+  handler: players.create
 })
 
 s.route({
