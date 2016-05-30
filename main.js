@@ -158,22 +158,22 @@ async function createRoom(title){
   }
 };
 
-async function createWebhook(roomId, powers, targetRoomId) {
-  console.log(`Creating webhook for ${powers} in room ${roomId}`);
-  console.log(`service url is ${serviceUrl}`);
-  try {
-    const webhook = await ciscospark.webhooks.create({
-      resource: `messages`,
-      event: `created`,
-      filter: `roomId=${roomId}`,
-      targetUrl: `${serviceUrl}/webhook/${targetRoomId}`,
-      name: `${powers}`
-    });
-  }
-  catch(reason) {
-    console.log(`Failed to create webhook: ${reason}`);
-  }
-};
+// async function createWebhook(roomId, powers, targetRoomId) {
+//   console.log(`Creating webhook for ${powers} in room ${roomId}`);
+//   console.log(`service url is ${serviceUrl}`);
+//   try {
+//     const webhook = await ciscospark.webhooks.create({
+//       resource: `messages`,
+//       event: `created`,
+//       filter: `roomId=${roomId}`,
+//       targetUrl: `${serviceUrl}/webhook/${targetRoomId}`,
+//       name: `${powers}`
+//     });
+//   }
+//   catch(reason) {
+//     console.log(`Failed to create webhook: ${reason}`);
+//   }
+// };
 
 async function webhook(data) {
   // console.log(`i am ${me._v.id}`);
@@ -359,34 +359,34 @@ s.route({
   }
 });
 
-function calcRoomWebhooks(powerRooms) {
-  var result = powerRooms.map( function(sourceRoom, i, allRooms) {
-    console.log(`dealing with ${sourceRoom.title}\n`);
-    var webhookRooms = allRooms.slice();
-    webhookRooms.splice(i, 1);
-    return webhookRooms.map(function(targetRoom) {
-      console.log(`  webhook for room ${targetRoom.title}\n`);
-      return {
-        sourceRoom: sourceRoom.id,
-        title: sourceRoom.title.split(' ')[0].split('-')[0],
-        targetRoom: targetRoom.id
-      };
-    })
-  });
-  return [].concat.apply([], result)
-}
+// function calcRoomWebhooks(powerRooms) {
+//   var result = powerRooms.map( function(sourceRoom, i, allRooms) {
+//     console.log(`dealing with ${sourceRoom.title}\n`);
+//     var webhookRooms = allRooms.slice();
+//     webhookRooms.splice(i, 1);
+//     return webhookRooms.map(function(targetRoom) {
+//       console.log(`  webhook for room ${targetRoom.title}\n`);
+//       return {
+//         sourceRoom: sourceRoom.id,
+//         title: sourceRoom.title.split(' ')[0].split('-')[0],
+//         targetRoom: targetRoom.id
+//       };
+//     })
+//   });
+//   return [].concat.apply([], result)
+// }
 
-function calcRoomNames(powers, gameId) {
-  var powerArr = powers.split('-');
-  console.log(powerArr);
-  return powerArr.sort().map(
-    function(power, i, arr) {
-      var newArr = arr.slice();
-      newArr.splice(i, 1);
-      var roomName = power + "-" + newArr.join('-') + " " + gameId;
-      return { title: roomName };
-    })
-}
+// function calcRoomNames(powers, gameId) {
+//   var powerArr = powers.split('-');
+//   console.log(powerArr);
+//   return powerArr.sort().map(
+//     function(power, i, arr) {
+//       var newArr = arr.slice();
+//       newArr.splice(i, 1);
+//       var roomName = power + "-" + newArr.join('-') + " " + gameId;
+//       return { title: roomName };
+//     })
+// }
 
 
 async function deleteRoomByName(name) {
