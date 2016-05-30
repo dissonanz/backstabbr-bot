@@ -222,7 +222,7 @@ async function messageFairy(messageId, targetRoomId, prefix) {
 
 s.route({
   method: 'POST',
-  path: '/rooms/{gameId}',
+  path: '/games/{gameId}/rooms',
   config: {
     tags: ['api'],
     description: 'Create new rooms for game {gameId}, includes each one-on-one, all, and one->bot',
@@ -232,7 +232,7 @@ s.route({
 
 s.route({
   method: 'GET',
-  path: '/rooms/{gameId}',
+  path: '/games/{gameId}/rooms',
   config: {
     tags: ['api'],
     description: 'Get rooms for game {gameId}',
@@ -242,7 +242,7 @@ s.route({
 
 s.route({
   method: 'DELETE',
-  path: '/rooms/{gameId}',
+  path: '/games/{gameId}/rooms',
   config: {
     tags: ['api'],
     description: 'Remove all rooms associated with game {gameId}',
