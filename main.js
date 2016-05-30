@@ -14,9 +14,9 @@ const roomsForThree = combinatorics.combination(['AUS','ENG','GER','RUS','TUR','
 const serviceUrl = process.env.SERVICE_URL || `https://backstabbr-bot.herokuapp.com`;
 
 var games = require(`./lib/controllers/games`);
-// var room = require(`./lib/db/room`);
 var rooms = require(`./lib/controllers/rooms`);
 var players = require(`./lib/controllers/players`);
+var webhooks = require(`./lib/controllers/webhooks`);
 
 var createJwt = function (data) {
   var JWT   = require('jsonwebtoken');
@@ -139,6 +139,16 @@ s.route({
     tags: ['api'],
     description: 'All rooms for given user',
     handler: rooms.list
+  }
+});
+
+s.route({
+  method: 'POST',
+  path: '/rooms',
+  config: {
+    tags: ['api'],
+    description: 'Create a room with title = @param title',
+    handler: rooms.create
   }
 });
 
