@@ -274,12 +274,6 @@ s.route({
 
 s.route({
   method: 'POST',
-  path: '/rooms',
-  handler: rooms.create
-});
-
-s.route({
-  method: 'POST',
   path: '/webhook',
   handler: function(request, reply) {
     console.log(request.payload);
@@ -501,5 +495,3 @@ s.route({
     reply(output);
   }
 })
-
-
