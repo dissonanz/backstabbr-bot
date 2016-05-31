@@ -262,13 +262,19 @@ s.route({
 
 s.route({
   method: 'DELETE',
-  path: '/room/{id}',
+  path: '/rooms/{id}',
   handler: rooms.remove
 });
 
 s.route({
+  method: 'GET',
+  path: '/rooms/{id}/webhooks',
+  handler: rooms.getRoomWebhooks
+});
+
+s.route({
   method: 'POST',
-  path: '/room',
+  path: '/rooms',
   handler: rooms.create
 });
 
@@ -463,7 +469,7 @@ s.route({
 
 s.route({
   method: 'POST',
-  path: '/player/{roomId}',
+  path: '/players/{roomId}',
   handler: async function (request, reply) {
     let output = await room.add(request.params.roomId, request.params.name, request.params.gameId, session);
     reply(output);
@@ -482,7 +488,7 @@ s.route({
 
 s.route({
   method: 'POST',
-  path: '/player',
+  path: '/players',
   handler: players.create
 })
 
