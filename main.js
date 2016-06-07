@@ -1,6 +1,7 @@
 'use strict';
 
 import assert from 'assert';
+var helpers = require('./lib/helpers/helpers');
 import combinatorics from 'js-combinatorics';
 const JWT_KEY = process.env.JWT_KEY || 'NeverShareYourSecret';
 
@@ -13,29 +14,10 @@ const roomsForTwo = combinatorics.combination(['AUS','ENG','GER','RUS','TUR','IT
 const roomsForThree = combinatorics.combination(['AUS','ENG','GER','RUS','TUR','ITA','FRA'],3);
 const serviceUrl = process.env.SERVICE_URL || `https://backstabbr-bot.herokuapp.com`;
 
-var games = require(`./lib/controllers/games`);
-var rooms = require(`./lib/controllers/rooms`);
-var players = require(`./lib/controllers/players`);
+var games    = require(`./lib/controllers/games`);
+var rooms    = require(`./lib/controllers/rooms`);
+var players  = require(`./lib/controllers/players`);
 var webhooks = require(`./lib/controllers/webhooks`);
-
-var createJwt = function (data) {
-  var JWT   = require('jsonwebtoken');
-  var obj   = data;
-  var token = JWT.sign(obj, 'NeverShareYourSecret');
-  var url   = "/path?token="+token;
-  return token
-};
-
-var validate = function (decoded, request, callback) {
-
-  // do your checks to see if the person is valid
-  if (!decoded.spark.authorization.access_token || !decoded.spark.authorization.refresh_token) {
-    return callback(null, false);
-  }
-  else {
-    return callback(null, true);
-  }
-};
 
 s.register(require('hapi-auth-jwt2'), function (err) {
 
@@ -44,8 +26,8 @@ s.register(require('hapi-auth-jwt2'), function (err) {
   }
 
   s.auth.strategy('jwt', 'jwt',
-  { key: JWT_KEY,          // Never Share your secret key
-    validateFunc: validate,            // validate function defined above
+  { key: JWT_KEY,                              // Never Share your secret key
+    validateFunc: helpers.validate,            // validate function defined in helpers
     verifyOptions: { algorithms: [ 'HS256' ] } // pick a strong algorithm
   });
 
@@ -126,7 +108,7 @@ s.route({
         authorization: auth
       }
     };
-    var jwt = await createJwt(combined)
+    var jwt = await helpers.createJwt(combined)
     reply(jwt)
     .type('application/json');
   }
@@ -208,28 +190,6 @@ async function webhook(data) {
   }
 };
 
-async function messageFairy(messageId, targetRoomId, prefix) {
-  // Listen to messages from a player in one room
-  // and parrot to the corresponding room(s)
-  // e.g. England says something in the ENG-GER
-  // room, and this service posts a message to the
-  // GER-ENG room "England: ${message}"
-  try {
-    let whatshesaid = await ciscospark.messages.get(messageId);
-    if (whatshesaid.personId != me._v.id) {
-      let whosheis = await ciscospark.people.get(whatshesaid.personId);
-      let msg = await ciscospark.messages.create({
-        text: prefix + whatshesaid.text,
-        roomId: targetRoomId
-      });
-      return;
-    }
-  }
-  catch(reason) {
-    return reason;
-  }
-};
-
 s.route({
   method: 'POST',
   path: '/games/{gameId}/rooms',
@@ -298,8 +258,13 @@ s.route({
   method: 'POST',
   path: '/webhook/{targetRoomId}',
   handler: async function(request, reply) {
-    console.log(request.payload)
-    var msg = await messageFairy(request.payload.data.id, request.params.targetRoomId, request.payload.name + ": ");
+    console.log(request.payload);
+    var msg = await ciscospark.messageFairy(
+      request.auth.credentials.spark.authorization,
+      request.payload.data.id,
+      request.params.targetRoomId,
+      request.payload.name.slice(0, 3) + ": "
+    );
     reply(msg).type('application/json');
   }
 });
