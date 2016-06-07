@@ -285,11 +285,13 @@ s.route({
 s.route({
   method: 'GET',
   path: '/webhooks',
-  handler: async function(request, reply) {
-    const webhooks = Array.from(await ciscospark.webhooks.list());
-    reply(JSON.stringify(webhooks))
-    .type('application/json');
-  }
+  handler: webhooks.find
+});
+
+s.route({
+  method: 'POST',
+  path: '/webhooks',
+  handler: webhooks.create
 });
 
 s.route({
