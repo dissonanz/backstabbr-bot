@@ -196,7 +196,17 @@ s.route({
   config: {
     tags: ['api'],
     description: 'Create new rooms for game {gameId}, includes each one-on-one, all, and one->bot',
-    handler: rooms.createGameRooms
+    handler: rooms.createAllGameRooms
+  }
+});
+
+s.route({
+  method: 'POST',
+  path: '/games/{gameId}/rooms/{roomTitle}',
+  config: {
+    tags: ['api'],
+    description: 'Create new room {roomTitle} for game {gameId}, options: "players" - array of player emails',
+    handler: games.createRooms
   }
 });
 
@@ -206,7 +216,17 @@ s.route({
   config: {
     tags: ['api'],
     description: 'Get rooms for game {gameId}',
-    handler: rooms.get
+    handler: games.getRooms
+  }
+});
+
+s.route({
+  method: 'GET',
+  path: '/games/{gameId}/players/{role?}',
+  config: {
+    tags: ['api'],
+    description: 'Get players for game {gameId} or get the player with role {role}',
+    handler: games.getPlayers
   }
 });
 
@@ -385,7 +405,7 @@ s.route({
   path: '/games',
   config: {
     tags: ['api'],
-    description: 'Create game {gameId}',
+    description: `Create game { gameId: [gameId], players: {RUS: [player], TUR: [player], ENG: [player], AUS: [player], GER: [player], FRA: [player], ITA: [player]}}`,
     handler: games.create
   }
 })
