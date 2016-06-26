@@ -414,6 +414,16 @@ s.route({
 })
 
 s.route({
+  method: 'PUT',
+  path: '/games/{gameId}',
+  config: {
+    tags: ['api'],
+    description: 'Update players for game {gameId}. @params: { players: {RUS: [player], TUR: [player], ENG: [player], AUS: [player], GER: [player], FRA: [player], ITA: [player]}}',
+    handler: games.update
+   }
+})
+
+s.route({
   method: 'DELETE',
   path: '/games/{gameId}',
   config: {
