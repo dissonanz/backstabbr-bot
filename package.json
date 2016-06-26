@@ -2,6 +2,10 @@
   "name": "backstabbr-bot",
   "version": "0.1.0",
   "description": "Spark bot for backstabbr",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dissonanz/backstabbr-bot.git"
+  },
   "main": "boot.js",
   "dependencies": {
     "babel-polyfill": "^6.7.4",
