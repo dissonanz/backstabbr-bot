@@ -1,5 +1,8 @@
 'use strict';
 
+global.logger = require('./lib/utils/logger');
+logger.level = process.env.LOG_LEVEL || 'info';
+
 import assert from 'assert';
 var helpers = require('./lib/helpers/helpers');
 import combinatorics from 'js-combinatorics';
